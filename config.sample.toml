@@ -1,0 +1,36 @@
+[redis]
+host="redis"
+port=6379
+db=0
+
+[twitter]
+consumer_key="<consumer_key>"
+consumer_secret="<consumer_secret>"
+access_key="<access_key>"
+access_secret="<access_secret>"
+
+[telegram]
+channels= ['<YOUR CHANNEL>']
+token="<TOKEN>"
+media_group_limit=9
+
+[crawler]
+retry_limit=10
+cool_down_time=10
+download_limit=30
+post_limit=10
+
+[manage]
+host='0.0.0.0'
+port=12402
+debug=false
+root_url="/"
+
+[webdav]
+host='your.nextcloud.server'
+port=443  # Forced to use https
+username='<YOUR USERNAME>'
+password='<YOUR PASSWORD>'
+path='/remote.php/dav/files/<YOUR NEXTCLOUD USERNAME>'
+use_https=true
+root_dir='/'

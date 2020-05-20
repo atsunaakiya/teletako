@@ -1,0 +1,11 @@
+.vscode/
+.idea/
+.DS_Store
+__pycache__
+*.pyc
+config.toml
+venv/
+data/
+cache/
+log/
+*.backup.json

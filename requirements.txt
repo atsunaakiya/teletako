@@ -1,0 +1,7 @@
+flask
+pillow
+python-telegram-bot
+tweepy
+redis
+toml
+webdavclient3

@@ -1,0 +1,41 @@
+<html>
+    <body>
+        <table>
+            <tr>
+                <th>Downloading</th>
+                <th>Posting</th>
+                <th>Success</th>
+                <th>Cleaned</th>
+                <th>Failed</th>
+            </tr>
+            <tr>
+                <td>{{ download_n }}</td>
+                <td>{{ post_n }}</td>
+                <td>{{ success_n }}</td>
+                <td>{{ cleaned_n }}</td>
+                <td>{{ failed_n }}</td>
+            </tr>
+        </table>
+        {% for service, authors in services %}
+            <h1>{{ service }}</h1>
+            <ul>
+                {% for author in authors %}
+                    <li>{{ author }}
+                        <form method="post" action="delete">
+                            <input type="hidden" name="type" value="{{ service }}"/>
+                            <input type="hidden" name="name" value="{{ author }}"/>
+                            <input type="submit" value="Delete"/>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+            <form method="post" action="add">
+                <p>
+                    <input type="text" name="name"/>
+                    <input type="hidden" name="type" value="{{ service }}"/>
+                    <input type="submit" value="Add">
+                </p>
+            </form>
+        {% endfor %}
+    </body>
+</html>

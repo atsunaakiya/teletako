@@ -1,0 +1,44 @@
+version: '3'
+services:
+  redis:
+    image: redis:alpine
+    restart: always
+#    ports:
+#    - '6379:6379'
+    volumes:
+    - './data:/data'
+
+  manage_server:
+    image: 'python:3.8-slim'
+    ports:
+      - '12402:12402'
+    volumes:
+      - '.:/app'
+    working_dir: '/app'
+    depends_on:
+      - redis
+    command: ['./scripts/manage_server.sh']
+
+  scripts: &default_container
+    image: 'python:3.8-slim'
+    volumes:
+      - '.:/app'
+    working_dir: '/app'
+    depends_on:
+      - redis
+
+  twitter_crawler:
+    <<: *default_container
+    command: ['./scripts/twitter_crawler.sh']
+
+  image_crawler:
+    <<: *default_container
+    command: ['./scripts/image_crawler.sh']
+
+  telegram_poster:
+    <<: *default_container
+    command: ['./scripts/telegram_poster.sh']
+
+  clean_to_webdav:
+    <<: *default_container
+    command: ['./scripts/clean_to_webdav.sh']
