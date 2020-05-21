@@ -47,7 +47,7 @@ def rel_page(type_):
     home_url = partial(get_user_home_page_url, type_)
     for (src, dst), ctr in rels.items():
         if dst in monitors:
-            pass
+            continue
         if dst not in rec_c:
             rec_c[dst] = 0
             rec_v[dst] = set()
