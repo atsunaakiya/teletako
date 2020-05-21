@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Twitter Relations</title>
+</head>
+<body>
+    <h1>{{ service }}</h1>
+    <table>
+        <tr>
+            <th>username</th>
+            <th>votes</th>
+            <th>voters</th>
+        </tr>
+        {% for (u, c, v) in recommends %}
+        <tr>
+            <td>
+                <a href="{{ home_url(u) }}" target="_blank">{{ u }}</a>
+            </td>
+            <td>{{ c }}</td>
+            <td>
+                {% for (s) in v %}
+                <span>
+                    <a href="{{ home_url(s) }}" target="_blank">{{ s }}</a>
+                </span>,
+                {% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

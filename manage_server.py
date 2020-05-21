@@ -1,10 +1,12 @@
-from typing import Optional
+from functools import partial
+from operator import itemgetter
+from typing import Optional, List, Dict, Tuple, Set
 
 import flask
 
 from lib.config import parse
 from lib.db import UDB
-from lib.utils import MessageType
+from lib.utils import MessageType, get_user_home_page_url
 
 app = flask.Flask(__name__)
 db: Optional[UDB] = None
@@ -12,7 +14,7 @@ db: Optional[UDB] = None
 
 def get_page():
     services = [
-        (t.value, db.monitor_list(t))
+        (t.value, db.monitor_list(t), partial(get_user_home_page_url, t))
         for t in MessageType
     ]
     download_n = db.download_count()
@@ -34,6 +36,29 @@ def get_page():
 def home_page():
     return get_page()
 
+
+@app.route("/rels/<type_>", methods=["GET"])
+def rel_page(type_):
+    type_ = MessageType(type_)
+    rels = db.relation_query(type_)
+    rec_c = {}
+    rec_v = {}
+    monitors = db.monitor_list(type_)
+    home_url = partial(get_user_home_page_url, type_)
+    for (src, dst), ctr in rels.items():
+        if dst in monitors:
+            pass
+        if dst not in rec_c:
+            rec_c[dst] = 0
+            rec_v[dst] = set()
+        rec_c[dst] += ctr
+        rec_v[dst].add(src)
+    recommends: List[Tuple[str, int, Set[str]]] = [
+        (k, rec_c[k], rec_v[k])
+        for k in rec_c.keys()
+    ]
+    recommends.sort(key=itemgetter(1), reverse=True)
+    return flask.render_template('relation.html', service=type_.value, recommends=recommends, home_url=home_url)
 
 @app.route("/add", methods=["POST"])
 def add_monitor():

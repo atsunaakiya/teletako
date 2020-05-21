@@ -1,6 +1,6 @@
 from functools import reduce
 from operator import or_
-from typing import AnyStr, NamedTuple, Optional, Iterable, List, Callable, Any, Dict
+from typing import AnyStr, NamedTuple, Optional, Iterable, List, Callable, Any, Dict, Tuple
 
 import redis
 
@@ -21,6 +21,8 @@ DATA_PREFIX = 'stbot.data'
 STATUS_PREFIX = 'stbot.status'
 MONITOR_PREFIX = 'stbot.monitor'
 URL_TO_FILE = 'stbot.url2file'
+RELATION_PREFIX = 'stbot.relation'
+RELATION_ID_PREFIX = 'stbot.relation.id'
 
 
 def _retry_count_key(uid: AnyStr):
@@ -43,10 +45,26 @@ def _monitor_key(type_: MessageType) -> str:
     return f"{MONITOR_PREFIX}:{type_.value}"
 
 
+def _relation_key(type_: MessageType) -> str:
+    return f"{RELATION_PREFIX}:{type_.value}"
+
+
+def _relation_id_key(type_: MessageType) -> str:
+    return f"{RELATION_ID_PREFIX}:{type_.value}"
+
 
 def _get_uid_from_key(key: str) -> str:
     k_prefix, uid = key.split(":")
     return uid
+
+
+def _merge_rel_key(src: str, dst: str) -> str:
+    return f"{src}:{dst}"
+
+
+def _split_rel_key(key: str) -> Tuple[str, str]:
+    src, dst = key.split(":")
+    return src, dst
 
 
 class RBQueue(NamedTuple):
@@ -276,7 +294,7 @@ class UDB:
 
     def recover(self):
         error_keys = set(_get_uid_from_key(k.decode(ENCODING)) for k in self.conn.keys(_status_key("*"))) - \
-                        reduce(or_, (set(x.list()) for x in self._status_to_queue.values()))
+                     reduce(or_, (set(x.list()) for x in self._status_to_queue.values()))
         for k in error_keys:
             s = self.get_status(k)
             print(k, ">>>", s.value)
@@ -288,6 +306,27 @@ class UDB:
             self.clean_retry(uid)
             self._status_to_queue[old_status].push(uid)
             self.set_status(uid, old_status)
+
+    def relation_add(self, type_: MessageType, src: str, dst: str, status_id: str) -> int:
+        name = _relation_key(type_)
+        key = _merge_rel_key(src, dst)
+        s = self.conn.hget(name, key) or b'0'
+        c = int(s.decode(ENCODING))
+        id_name = _relation_id_key(type_)
+        bid = status_id.encode(ENCODING)
+        if not self.conn.sismember(id_name, bid):
+            self.conn.sadd(id_name, bid)
+            c += 1
+            s = str(c).encode(ENCODING)
+            self.conn.hset(name, key, s)
+        return c
+
+    def relation_query(self, type_: MessageType) -> Dict[Tuple[str, str], int]:
+        name = _relation_key(type_)
+        return {
+            _split_rel_key(k.decode(ENCODING)): int(v.decode(ENCODING))
+            for k, v in self.conn.hscan_iter(name)
+        }
 
     def __enter__(self) -> 'UDB':
         return self

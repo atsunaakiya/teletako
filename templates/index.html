@@ -16,19 +16,8 @@
                 <td>{{ failed_n }}</td>
             </tr>
         </table>
-        {% for service, authors in services %}
+        {% for service, authors, home in services %}
             <h1>{{ service }}</h1>
-            <ul>
-                {% for author in authors %}
-                    <li>{{ author }}
-                        <form method="post" action="delete">
-                            <input type="hidden" name="type" value="{{ service }}"/>
-                            <input type="hidden" name="name" value="{{ author }}"/>
-                            <input type="submit" value="Delete"/>
-                        </form>
-                    </li>
-                {% endfor %}
-            </ul>
             <form method="post" action="add">
                 <p>
                     <input type="text" name="name"/>
@@ -36,6 +25,29 @@
                     <input type="submit" value="Add">
                 </p>
             </form>
+            <h3><a href="rels/{{ service }}" target="_blank">Rels</a></h3>
+            <table>
+                <tr>
+                    <th>username</th>
+                    <th>actions</th>
+                </tr>
+                {% for author in authors %}
+                    <tr>
+                        <td>
+                            <span>
+                                <a href="{{ home(author) }}" target="_blank">{{ author }}</a>
+                            </span>
+                        </td>
+                        <td>
+                            <form method="post" action="delete">
+                                <input type="hidden" name="type" value="{{ service }}"/>
+                                <input type="hidden" name="name" value="{{ author }}"/>
+                                <input type="submit" value="Delete"/>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
         {% endfor %}
     </body>
 </html>

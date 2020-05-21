@@ -1,11 +1,20 @@
 import json
 from enum import Enum
-from typing import NamedTuple, AnyStr, List
+from typing import NamedTuple, AnyStr, List, Dict
 
 
 class MessageType(Enum):
     Twitter = 'twitter'
     # Pixiv = 'pixiv'
+
+
+_user_base_url: Dict[MessageType, str] = {
+    MessageType.Twitter: 'https://twitter.com/{username}/media'
+}
+
+
+def get_user_home_page_url(type_: MessageType, author: str):
+    return _user_base_url[type_].format(username=author)
 
 
 class UMessage(NamedTuple):
