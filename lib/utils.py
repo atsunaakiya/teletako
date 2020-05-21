@@ -9,7 +9,7 @@ class MessageType(Enum):
 
 
 _user_base_url: Dict[MessageType, str] = {
-    MessageType.Twitter: 'https://twitter.com/{username}/media'
+    MessageType.Twitter: 'https://twitter.com/{username}'
 }
 
 
