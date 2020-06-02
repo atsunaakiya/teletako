@@ -1,3 +1,4 @@
+import sys
 from collections import deque
 import re
 from typing import Iterable, NamedTuple, List, Optional, Set, Tuple, Deque
@@ -94,6 +95,13 @@ def get_twitter_medias(api: tweepy.API, db: UDB, username: str) -> Iterable[UMes
         yield from _walk_status(api, status, 2)
 
 
+def _safe_get_twitter_medias(api: tweepy.API, db: UDB, username: str) -> Iterable[UMessage]:
+    try:
+        yield from get_twitter_medias(api, db, username)
+    except tweepy.error.TweepError as err:
+        print(f"Error on Twitter @ {username}: ", err)
+
+
 def main():
     with open('config.toml') as cf:
         config = parse(cf)
@@ -101,7 +109,7 @@ def main():
     with UDB(config.redis) as db:
         monitors = set(db.monitor_list(MessageType.Twitter))
         for mu in monitors:
-            for msg in get_twitter_medias(api, db, mu):
+            for msg in _safe_get_twitter_medias(api, db, mu):
                 if db.data_exists(msg.uid):
                     continue
                 if msg.author not in monitors:
