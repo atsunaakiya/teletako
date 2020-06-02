@@ -56,6 +56,7 @@ def rel_page(type_):
     recommends: List[Tuple[str, int, Set[str]]] = [
         (k, rec_c[k], rec_v[k])
         for k in rec_c.keys()
+        if rec_c[k] > 1
     ]
     recommends.sort(key=itemgetter(1), reverse=True)
     return flask.render_template('relation.html', service=type_.value, recommends=recommends, home_url=home_url)
