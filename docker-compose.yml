@@ -29,7 +29,7 @@ services:
 
   telegram_search:
     <<: *default_container
-    command: ['python', 'telegram_search.py']
+    command: ['./scripts/telegram_search.sh']
 
   twitter_crawler:
     <<: *default_container
