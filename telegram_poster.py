@@ -2,12 +2,13 @@ import traceback
 from itertools import chain
 from typing import List, TypeVar, Iterable
 
-from telegram import InputMediaPhoto
+from telegram import InputMediaPhoto, Bot
 from telegram.ext import Updater
 
 from lib.cache import read_cache
 from lib.config import parse, TelegramConfig
 from lib.db import UDB
+from lib.utils import TargetType
 
 T = TypeVar("T")
 
@@ -42,7 +43,10 @@ def main():
                         for f in files
                     ]
                     for ch in config.telegram.channels:
-                        updater.bot.send_media_group(f"@{ch}", media=media)
+                        res = updater.bot.send_media_group(f"@{ch}", media=media)
+                        for r in res:
+                            message_id = r['message_id']
+                            db.reversed_index_add(TargetType.Telegram, f'{ch}/{message_id}', post.uid)
             except Exception as err:
                 traceback.print_exc()
                 db.retry_or_fail(post.uid, db.post_retry, config.crawler.retry_limit)

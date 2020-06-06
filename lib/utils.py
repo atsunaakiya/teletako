@@ -8,6 +8,10 @@ class MessageType(Enum):
     # Pixiv = 'pixiv'
 
 
+class TargetType(Enum):
+    Telegram = 'telegram'
+
+
 _user_base_url: Dict[MessageType, str] = {
     MessageType.Twitter: 'https://twitter.com/{username}'
 }

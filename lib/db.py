@@ -5,7 +5,7 @@ from typing import AnyStr, NamedTuple, Optional, Iterable, List, Callable, Any, 
 import redis
 
 from lib.config import RedisConfig
-from lib.utils import UMessage, MessageStatus, MessageType
+from lib.utils import UMessage, MessageStatus, MessageType, TargetType
 
 ENCODING = 'utf-8'
 VERSION = 'stbot.version'
@@ -23,6 +23,7 @@ MONITOR_PREFIX = 'stbot.monitor'
 URL_TO_FILE = 'stbot.url2file'
 RELATION_PREFIX = 'stbot.relation'
 RELATION_ID_PREFIX = 'stbot.relation.id'
+REVERSED_INDEX_PREFIX = 'stbot.reversed.index'
 
 
 def _retry_count_key(uid: AnyStr):
@@ -65,6 +66,9 @@ def _merge_rel_key(src: str, dst: str) -> str:
 def _split_rel_key(key: str) -> Tuple[str, str]:
     src, dst = key.split(":")
     return src, dst
+
+def _reversed_index_key(type_: TargetType) -> str:
+    return f"{REVERSED_INDEX_PREFIX}:{type_.value}"
 
 
 class RBQueue(NamedTuple):
@@ -327,6 +331,16 @@ class UDB:
             _split_rel_key(k.decode(ENCODING)): int(v.decode(ENCODING))
             for k, v in self.conn.hscan_iter(name)
         }
+
+    def reversed_index_add(self, type_: TargetType, tid, uid):
+        self.conn.hset(_reversed_index_key(type_), tid.encode(ENCODING), uid.encode(ENCODING))
+
+    def reversed_index_get(self, type_: TargetType, tid) -> Optional[UMessage]:
+        uid = self.conn.hget(_reversed_index_key(type_), tid.encode(ENCODING))
+        if uid is None:
+            return None
+        uid = uid.decode(ENCODING)
+        return self.get_data(uid)
 
     def __enter__(self) -> 'UDB':
         return self
