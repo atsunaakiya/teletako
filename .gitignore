@@ -9,3 +9,4 @@ data/
 cache/
 log/
 *.backup.json
+tmp/
