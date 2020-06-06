@@ -1,12 +1,12 @@
 import os
 import traceback
 from pathlib import Path
-from typing import Dict, Set
+from typing import Dict, Set, List
 
 from webdav3.client import Client
 
 from lib.cache import cache_path
-from lib.config import parse, WebDavConfig
+from lib.config import parse, WebDavConfig, RoutingConfig
 from lib.db import UDB
 from lib.utils import UMessage, MessageType
 
@@ -25,34 +25,39 @@ def get_client(config: WebDavConfig) -> Client:
     return client
 
 
-def update_files(db: UDB, client: Client, root_dir: Path, retry_limit: int):
-    services_dir = set([t.value for t in MessageType])
-    for s in set(services_dir) - set(client.list(str(root_dir))):
-        client.mkdir(str(root_dir / s))
-    authors: Dict[MessageType, Set[str]] = {
-        t: set(client.list(str(root_dir / t.value)))
-        for t in MessageType
-    }
-    for msg in db.success_iter_poll():
-        try:
-            if msg.monitor not in authors[msg.type]:
-                client.mkdir(str(root_dir / msg.type.value / msg.monitor))
-                authors[msg.type].add(msg.monitor)
-            local_files = [
-                cache_path(db.get_file(u))
-                for u in msg.media_list
-            ]
-            for i, local_path in enumerate(local_files):
-                remote_path = str(root_dir / msg.type.value / msg.monitor / f"{msg.id}_{i}.jpg")
-                print(local_path, ">>>", remote_path)
-                client.upload(remote_path, local_path)
-            for f in local_files:
-                os.remove(f)
-        except Exception as err:
-            traceback.print_exc()
-            db.retry_or_fail(msg.uid, db.clean_retry, retry_limit)
-        else:
-            db.clean(msg.uid)
+def update_files(routings: List[RoutingConfig], db: UDB, client: Client, root_dir: Path, retry_limit: int):
+    tags = [r.tag for r in routings]
+    for d in set(tags) - set(client.list(str(root_dir))):
+        client.mkdir(str(root_dir / d))
+    for tag in tags:
+        tag_dir = root_dir / tag
+        services_dir = set([t.value for t in MessageType])
+        for s in set(services_dir) - set(client.list(str(tag_dir))):
+            client.mkdir(str(tag_dir / s))
+        authors: Dict[MessageType, Set[str]] = {
+            t: set(client.list(str(tag_dir / t.value)))
+            for t in MessageType
+        }
+        for msg in db.success_iter_poll():
+            try:
+                if msg.monitor not in authors[msg.type]:
+                    client.mkdir(str(tag_dir / msg.type.value / msg.monitor))
+                    authors[msg.type].add(msg.monitor)
+                local_files = [
+                    cache_path(db.get_file(u))
+                    for u in msg.media_list
+                ]
+                for i, local_path in enumerate(local_files):
+                    remote_path = str(tag_dir / msg.type.value / msg.monitor / f"{msg.id}_{i}.jpg")
+                    print(local_path, ">>>", remote_path)
+                    client.upload(remote_path, local_path)
+                for f in local_files:
+                    os.remove(f)
+            except Exception as err:
+                traceback.print_exc()
+                db.retry_or_fail(msg.uid, db.clean_retry, retry_limit)
+            else:
+                db.clean(msg.uid)
 
 
 def main():

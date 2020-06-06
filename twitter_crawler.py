@@ -107,24 +107,25 @@ def main():
         config = parse(cf)
     api = start_authorization(config.twitter)
     with UDB(config.redis) as db:
-        monitors = set(db.monitor_list(MessageType.Twitter))
-        for mu in monitors:
-            for msg in _safe_get_twitter_medias(api, db, mu):
-                if db.data_exists(msg.uid):
-                    continue
-                if msg.author not in monitors:
-                    r = db.relation_add(MessageType.Twitter, mu, msg.author, msg.id)
-                    print(f"Rel Add: {mu} => {msg.author} [{r}]")
-                    continue
-                retweet_user = _get_retweet_name(msg.content)
-                if retweet_user is not None:
-                    r = db.relation_add(MessageType.Twitter, msg.author, retweet_user, msg.id)
-                    print(f"Rel Add: {msg.author} => {retweet_user} [{r}]")
-                    continue
-                if not msg.media_list:
-                    continue
-                db.download_add(msg)
-                print(msg)
+        for routing in config.routings:
+            monitors = set(db.monitor_list(MessageType.Twitter, routing.tag))
+            for mu in monitors:
+                for msg in _safe_get_twitter_medias(api, db, mu):
+                    if db.data_exists(msg.uid):
+                        continue
+                    if msg.author not in monitors:
+                        r = db.relation_add(MessageType.Twitter, routing.tag, mu, msg.author, msg.id)
+                        print(f"Rel Add: {mu} => {msg.author} [{r}]")
+                        continue
+                    retweet_user = _get_retweet_name(msg.content)
+                    if retweet_user is not None:
+                        r = db.relation_add(MessageType.Twitter, routing.tag, msg.author, retweet_user, msg.id)
+                        print(f"Rel Add: {msg.author} => {retweet_user} [{r}]")
+                        continue
+                    if not msg.media_list:
+                        continue
+                    db.download_add(msg)
+                    print(msg)
 
 
 if __name__ == '__main__':

@@ -22,13 +22,14 @@ def get_user_home_page_url(type_: MessageType, author: str):
 
 
 class UMessage(NamedTuple):
-    id: AnyStr
+    id: str
     type: MessageType
-    monitor: AnyStr
-    source: AnyStr
-    content: AnyStr
-    author: AnyStr
-    media_list: List[AnyStr]
+    tags: List[str]
+    monitor: str
+    source: str
+    content: str
+    author: str
+    media_list: List[str]
 
     @property
     def uid(self):
@@ -42,7 +43,8 @@ class UMessage(NamedTuple):
             source=self.source,
             content=self.content,
             author=self.author,
-            media_list=self.media_list
+            media_list=self.media_list,
+            tags=self.tags
         ))
 
     @classmethod
@@ -55,7 +57,8 @@ class UMessage(NamedTuple):
             content=d['content'],
             author=d['author'],
             media_list=d['media_list'],
-            monitor=d['monitor']
+            monitor=d['monitor'],
+            tags=d['tags']
         )
 
 

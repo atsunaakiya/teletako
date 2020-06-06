@@ -1,4 +1,4 @@
-from typing import NamedTuple, AnyStr, List, IO
+from typing import NamedTuple, List, IO
 import toml
 
 
@@ -27,22 +27,26 @@ class CrawlerConfig(NamedTuple):
 
 
 class RedisConfig(NamedTuple):
-    host: AnyStr
+    host: str
     port: int
     db: int
 
 
 class TwitterConfig(NamedTuple):
-    consumer_key: AnyStr
-    consumer_secret: AnyStr
-    access_key: AnyStr
-    access_secret: AnyStr
+    consumer_key: str
+    consumer_secret: str
+    access_key: str
+    access_secret: str
 
 
 class TelegramConfig(NamedTuple):
-    channels: List[AnyStr]
     token: str
     media_group_limit: int
+
+
+class RoutingConfig(NamedTuple):
+    tag: str
+    telegram_channels: List[str]
 
 
 class UConfig(NamedTuple):
@@ -52,6 +56,9 @@ class UConfig(NamedTuple):
     redis: RedisConfig
     crawler: CrawlerConfig
     manage: ManageConfig
+    routings: List[RoutingConfig]
+
+
 
 
 def parse(f: IO) -> UConfig:
@@ -62,5 +69,9 @@ def parse(f: IO) -> UConfig:
         redis=RedisConfig(**d['redis']),
         crawler=CrawlerConfig(**d['crawler']),
         manage=ManageConfig(**d['manage']),
-        webdav=WebDavConfig(**d['webdav'])
+        webdav=WebDavConfig(**d['webdav']),
+        routings=[
+            RoutingConfig(**r)
+            for r in d['routing']
+        ]
     )

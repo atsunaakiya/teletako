@@ -1,108 +1,18 @@
 from functools import reduce
 from operator import or_
-from typing import AnyStr, NamedTuple, Optional, Iterable, List, Callable, Any, Dict, Tuple
+from typing import AnyStr, Optional, Iterable, List, Callable, Any, Dict
 
 import redis
 
 from lib.config import RedisConfig
-from lib.utils import UMessage, MessageStatus, MessageType, TargetType
-
-ENCODING = 'utf-8'
-VERSION = 'stbot.version'
-DOWNLOAD_QUEUE = 'stbot.queue.download'
-POST_QUEUE = 'stbot.queue.post'
-FAILURE_STATUS_PREFIX = 'stbot.failure.status'
-SUCCESS_QUEUE = 'stbot.queue.success'
-CLEANED_QUEUE = 'stbot.queue.clean'
-FAILED_QUEUE = 'stbot.queue.failed'
-BACKUP_QUEUE = 'stbot.queue.backup'
-RETRY_COUNT_PREFIX = 'stbot.retry'
-DATA_PREFIX = 'stbot.data'
-STATUS_PREFIX = 'stbot.status'
-MONITOR_PREFIX = 'stbot.monitor'
-URL_TO_FILE = 'stbot.url2file'
-RELATION_PREFIX = 'stbot.relation'
-RELATION_ID_PREFIX = 'stbot.relation.id'
-REVERSED_INDEX_PREFIX = 'stbot.reversed.index'
+from lib.utils import UMessage, MessageStatus
+from .names import *
+from .utils import ENCODING, RBQueue
+from .versions import initialize
 
 
-def _retry_count_key(uid: AnyStr):
-    return f'{RETRY_COUNT_PREFIX}:{uid}'
-
-
-def _data_key(uid: AnyStr):
-    return f'{DATA_PREFIX}:{uid}'
-
-
-def _status_key(uid: AnyStr):
-    return f'{STATUS_PREFIX}:{uid}'
-
-
-def _get_failure_status(uid: AnyStr) -> str:
-    return f'{FAILURE_STATUS_PREFIX}:{uid}'
-
-
-def _monitor_key(type_: MessageType) -> str:
-    return f"{MONITOR_PREFIX}:{type_.value}"
-
-
-def _relation_key(type_: MessageType) -> str:
-    return f"{RELATION_PREFIX}:{type_.value}"
-
-
-def _relation_id_key(type_: MessageType) -> str:
-    return f"{RELATION_ID_PREFIX}:{type_.value}"
-
-
-def _get_uid_from_key(key: str) -> str:
-    k_prefix, uid = key.split(":")
-    return uid
-
-
-def _merge_rel_key(src: str, dst: str) -> str:
-    return f"{src}:{dst}"
-
-
-def _split_rel_key(key: str) -> Tuple[str, str]:
-    src, dst = key.split(":")
-    return src, dst
-
-def _reversed_index_key(type_: TargetType) -> str:
-    return f"{REVERSED_INDEX_PREFIX}:{type_.value}"
-
-
-class RBQueue(NamedTuple):
-    conn: redis.Redis
-    queue_key: AnyStr
-
-    def push(self, uid: str):
-        self.conn.lpush(self.queue_key, uid.encode(ENCODING))
-
-    def pop(self) -> Optional[str]:
-        res = self.conn.rpop(self.queue_key)
-        if res is not None:
-            return res.decode(ENCODING)
-
-    def size(self):
-        return self.conn.llen(self.queue_key)
-
-    def empty(self) -> bool:
-        return self.size() == 0
-
-    def iter_pop(self, limit: Optional[int] = None) -> Iterable[str]:
-        if limit is None:
-            limit = -1
-        d = self.pop()
-        while d is not None and limit != 0:
-            yield d
-            d = self.pop()
-            limit -= 1
-
-    def list(self) -> List[str]:
-        return [
-            b.decode(ENCODING)
-            for b in self.conn.lrange(self.queue_key, 0, -1)
-        ]
+def connect_db(config: RedisConfig) -> redis.Redis:
+    return redis.StrictRedis(host=config.host, port=config.port, db=config.db)
 
 
 class UDB:
@@ -116,12 +26,8 @@ class UDB:
     _status_to_queue: Dict[MessageStatus, RBQueue]
 
     def __init__(self, config: RedisConfig):
-        self.conn = redis.StrictRedis(host=config.host, port=config.port, db=config.db)
-        current_version = self.get_version()
-        if current_version is None:
-            initialize(self.conn, self.version)
-        elif current_version != self.version:
-            raise RuntimeError(f"Unsupported version: {current_version}, requires {self.version}")
+        self.conn = connect_db(config)
+        initialize(self.conn)
         self.download_queue = RBQueue(self.conn, DOWNLOAD_QUEUE)
         self.post_queue = RBQueue(self.conn, POST_QUEUE)
         self.success_queue = RBQueue(self.conn, SUCCESS_QUEUE)
@@ -213,43 +119,43 @@ class UDB:
         self.set_failure_status(uid, current_status)
 
     def set_failure_status(self, uid: AnyStr, status: MessageStatus):
-        self.conn[_get_failure_status(uid)] = status.value.encode(ENCODING)
+        self.conn[get_failure_status(uid)] = status.value.encode(ENCODING)
 
     def get_failure_status(self, uid: AnyStr) -> MessageStatus:
-        return MessageStatus(self.conn[_get_failure_status(uid)].decode(ENCODING))
+        return MessageStatus(self.conn[get_failure_status(uid)].decode(ENCODING))
 
     def failed_count(self):
         return self.failed_queue.size()
 
     def set_status(self, uid: AnyStr, status: MessageStatus):
-        self.conn[_status_key(uid)] = status.value.encode(ENCODING)
+        self.conn[status_key(uid)] = status.value.encode(ENCODING)
 
     def get_status(self, uid) -> MessageStatus:
-        return MessageStatus(self.conn[_status_key(uid)].decode(ENCODING))
+        return MessageStatus(self.conn[status_key(uid)].decode(ENCODING))
 
     def put_data(self, msg: UMessage):
-        self.conn[_data_key(msg.uid)] = msg.stringify().encode(ENCODING)
+        self.conn[data_key(msg.uid)] = msg.stringify().encode(ENCODING)
 
     def get_data(self, uid: AnyStr) -> UMessage:
-        d = self.conn[_data_key(uid)]
+        d = self.conn[data_key(uid)]
         return UMessage.parse(d.decode(ENCODING))
 
     def data_exists(self, uid: AnyStr) -> bool:
-        return _data_key(uid) in self.conn
+        return data_key(uid) in self.conn
 
-    def monitor_add(self, type_: MessageType, name: str):
-        k = _monitor_key(type_)
+    def monitor_add(self, type_: MessageType, tag: str, name: str):
+        k = monitor_key(type_, tag)
         self.conn.sadd(k, name.encode(ENCODING))
 
-    def monitor_list(self, type_: MessageType) -> List[str]:
-        k = _monitor_key(type_)
+    def monitor_list(self, type_: MessageType, tag: str) -> List[str]:
+        k = monitor_key(type_, tag)
         return [
             s.decode(ENCODING)
             for s in self.conn.smembers(k)
         ]
 
-    def monitor_remove(self, type_: MessageType, name: str):
-        k = _monitor_key(type_)
+    def monitor_remove(self, type_: MessageType, tag: str, name: str):
+        k = monitor_key(type_, str)
         self.conn.srem(k, name.encode(ENCODING))
 
     def add_file(self, url: str, path: str):
@@ -264,7 +170,7 @@ class UDB:
         self.conn.hdel(URL_TO_FILE, url.encode(ENCODING))
 
     def inc_retry(self, uid: AnyStr):
-        k = _retry_count_key(uid)
+        k = retry_count_key(uid)
         c = self.conn.get(k) or b'0'
         c = int(c.decode(ENCODING))
         self.conn[k] = c + 1
@@ -276,7 +182,7 @@ class UDB:
             self.fail(uid)
 
     def get_retry(self, uid: AnyStr) -> int:
-        k = _retry_count_key(uid)
+        k = retry_count_key(uid)
         c = self.conn.get(k) or b'0'
         c = int(c.decode(ENCODING))
         return c
@@ -288,16 +194,11 @@ class UDB:
         if status != expected:
             raise RuntimeError(f"Invalid status for uid={uid}, expected: {expected.value}, actual: {status.value}")
 
-    def get_version(self) -> Optional[str]:
-        v = self.conn.get(VERSION)
-        if v is not None:
-            return v.decode(ENCODING)
-
     def close(self):
         self.conn.close()
 
     def recover(self):
-        error_keys = set(_get_uid_from_key(k.decode(ENCODING)) for k in self.conn.keys(_status_key("*"))) - \
+        error_keys = set(get_uid_from_key(k.decode(ENCODING)) for k in self.conn.keys(status_key("*"))) - \
                      reduce(or_, (set(x.list()) for x in self._status_to_queue.values()))
         for k in error_keys:
             s = self.get_status(k)
@@ -311,12 +212,12 @@ class UDB:
             self._status_to_queue[old_status].push(uid)
             self.set_status(uid, old_status)
 
-    def relation_add(self, type_: MessageType, src: str, dst: str, status_id: str) -> int:
-        name = _relation_key(type_)
-        key = _merge_rel_key(src, dst)
+    def relation_add(self, type_: MessageType, tag: str, src: str, dst: str, status_id: str) -> int:
+        name = relation_key(type_, tag)
+        key = merge_rel_key(src, dst)
         s = self.conn.hget(name, key) or b'0'
         c = int(s.decode(ENCODING))
-        id_name = _relation_id_key(type_)
+        id_name = relation_id_key(type_, tag)
         bid = status_id.encode(ENCODING)
         if not self.conn.sismember(id_name, bid):
             self.conn.sadd(id_name, bid)
@@ -325,18 +226,18 @@ class UDB:
             self.conn.hset(name, key, s)
         return c
 
-    def relation_query(self, type_: MessageType) -> Dict[Tuple[str, str], int]:
-        name = _relation_key(type_)
+    def relation_query(self, type_: MessageType, tag: str) -> Dict[Tuple[str, str], int]:
+        name = relation_key(type_, tag)
         return {
-            _split_rel_key(k.decode(ENCODING)): int(v.decode(ENCODING))
+            split_rel_key(k.decode(ENCODING)): int(v.decode(ENCODING))
             for k, v in self.conn.hscan_iter(name)
         }
 
     def reversed_index_add(self, type_: TargetType, tid, uid):
-        self.conn.hset(_reversed_index_key(type_), tid.encode(ENCODING), uid.encode(ENCODING))
+        self.conn.hset(reversed_index_key(type_), tid.encode(ENCODING), uid.encode(ENCODING))
 
     def reversed_index_get(self, type_: TargetType, tid) -> Optional[UMessage]:
-        uid = self.conn.hget(_reversed_index_key(type_), tid.encode(ENCODING))
+        uid = self.conn.hget(reversed_index_key(type_), tid.encode(ENCODING))
         if uid is None:
             return None
         uid = uid.decode(ENCODING)
@@ -347,7 +248,3 @@ class UDB:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-
-
-def initialize(conn: redis.Redis, version: str):
-    conn[VERSION] = version.encode(ENCODING)

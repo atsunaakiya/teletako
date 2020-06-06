@@ -1,7 +1,5 @@
 import os
-import shutil
 import uuid
-from io import BytesIO
 from pathlib import Path
 from typing import IO
 from PIL import Image
