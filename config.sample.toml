@@ -11,6 +11,7 @@ access_secret="<access_secret>"
 
 [telegram]
 channels= ['<YOUR CHANNEL>']
+private_channels=[]
 token="<TOKEN>"
 media_group_limit=9
 
@@ -24,7 +25,7 @@ post_limit=10
 host='0.0.0.0'
 port=12402
 debug=false
-root_url="/"
+root_url=""
 
 [webdav]
 host='your.nextcloud.server'

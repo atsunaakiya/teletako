@@ -47,6 +47,9 @@ def main():
                         for r in res:
                             message_id = r['message_id']
                             db.reversed_index_add(TargetType.Telegram, f'{ch}/{message_id}', post.uid)
+                    if config.telegram.private_channels:
+                        for ch in config.telegram.private_channels:
+                            updater.bot.send_media_group(ch, media=media)
             except Exception as err:
                 traceback.print_exc()
                 db.retry_or_fail(post.uid, db.post_retry, config.crawler.retry_limit)

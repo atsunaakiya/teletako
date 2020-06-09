@@ -1,4 +1,4 @@
-from typing import NamedTuple, AnyStr, List, IO
+from typing import NamedTuple, AnyStr, List, IO, Optional
 import toml
 
 
@@ -27,22 +27,23 @@ class CrawlerConfig(NamedTuple):
 
 
 class RedisConfig(NamedTuple):
-    host: AnyStr
+    host: str
     port: int
     db: int
 
 
 class TwitterConfig(NamedTuple):
-    consumer_key: AnyStr
-    consumer_secret: AnyStr
-    access_key: AnyStr
-    access_secret: AnyStr
+    consumer_key: str
+    consumer_secret: str
+    access_key: str
+    access_secret: str
 
 
 class TelegramConfig(NamedTuple):
-    channels: List[AnyStr]
+    channels: List[str]
     token: str
     media_group_limit: int
+    private_channels: Optional[List[str]] = None
 
 
 class UConfig(NamedTuple):
