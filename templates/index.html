@@ -18,14 +18,14 @@
         </table>
         {% for service, authors, home in services %}
             <h1>{{ service }}</h1>
-            <form method="post" action="add">
+            <form method="post" action="{{ URL_ROOT }}/add">
                 <p>
                     <input type="text" name="name"/>
                     <input type="hidden" name="type" value="{{ service }}"/>
                     <input type="submit" value="Add">
                 </p>
             </form>
-            <h3><a href="rels/{{ service }}" target="_blank">Rels</a></h3>
+            <h3><a href="{{ URL_ROOT }}/rels/{{ service }}" target="_blank">Rels</a></h3>
             <table>
                 <tr>
                     <th>username</th>
@@ -39,7 +39,7 @@
                             </span>
                         </td>
                         <td>
-                            <form method="post" action="delete">
+                            <form method="post" action="{{ URL_ROOT }}/delete">
                                 <input type="hidden" name="type" value="{{ service }}"/>
                                 <input type="hidden" name="name" value="{{ author }}"/>
                                 <input type="submit" value="Delete"/>

@@ -10,6 +10,7 @@ from lib.utils import MessageType, get_user_home_page_url
 
 app = flask.Flask(__name__)
 db: Optional[UDB] = None
+URL_ROOT: str = ''
 
 
 def get_page():
@@ -28,7 +29,8 @@ def get_page():
                                  post_n=post_n,
                                  success_n=success_n,
                                  failed_n=failed_n,
-                                 cleaned_n=cleaned_n
+                                 cleaned_n=cleaned_n,
+                                 URL_ROOT=URL_ROOT
                                  )
 
 
@@ -84,5 +86,5 @@ if __name__ == '__main__':
     with open('config.toml') as cf:
         config = parse(cf)
     with UDB(config.redis) as db:
-        app.config["APPLICATION_ROOT"] = config.manage.root_url
+        URL_ROOT = config.manage.root_url
         app.run(host=config.manage.host, port=config.manage.port, debug=config.manage.debug)
