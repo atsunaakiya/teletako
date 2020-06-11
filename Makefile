@@ -1,14 +1,14 @@
 init:
-	docker-compose run scripts ./scripts/init.sh
+	docker-compose run --rm scripts ./scripts/init.sh
 
 recover:
-	docker-compose run scripts ./scripts/recover.sh
+	docker-compose run --rm scripts ./scripts/recover.sh
 
 restart_failed_tasks:
-	docker-compose run scripts ./scripts/restart_failed_tasks.sh
+	docker-compose run --rm scripts ./scripts/restart_failed_tasks.sh
 
 export_authors:
-	docker-compose run scripts ./scripts/authors.sh export authors.backup.json
+	docker-compose run --rm scripts ./scripts/authors.sh export authors.backup.json
 
 import_authors:
-	docker-compose run scripts ./scripts/authors.sh import authors.backup.json
+	docker-compose run --rm scripts ./scripts/authors.sh import authors.backup.json

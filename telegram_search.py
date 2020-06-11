@@ -17,6 +17,7 @@ def handle_start(update: Update, context: CallbackContext):
 
 def handle_forward(db: UDB, update: Update, context: CallbackContext):
     message: Message = update.message
+    print(message)
     chat_name = message.forward_from_chat.username
     message_id = message.forward_from_message_id
     tid = f'{chat_name}/{message_id}'
