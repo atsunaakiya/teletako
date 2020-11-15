@@ -5,3 +5,4 @@ tweepy
 redis
 toml
 webdavclient3
+pixivpy

@@ -22,6 +22,7 @@ def get_client(config: WebDavConfig) -> Client:
         webdav_password=config.password,
     ))
     client.verify = config.use_https
+    client.timeout = None
     return client
 
 
